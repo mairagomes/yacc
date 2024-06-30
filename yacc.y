@@ -181,7 +181,7 @@ void atualiza_variavel(char *tipo, char *id, int numero_inteiro, char *cadeia_va
                 if (strcmp(tipo, "NUMERO") == 0) {
                     temp->tipo_valor = TIPO_INTEIRO;
                     temp->valor.numero_inteiro = numero_inteiro;
-                } else if (strcmp(tipo, "CADEIA") == 0) {
+                } else if (strcmp(tipo, "STRING") == 0) {
                     if (temp->tipo_valor == TIPO_STRING) {
                         free(temp->valor.cadeia_valor);
                     }
@@ -239,7 +239,7 @@ char* num_em_str(int numero) {
 char* verificar_tipo(char *str) {
     for (int i = 0; str[i] != '\0'; i++) {
         if (!isdigit(str[i])) {
-            return "CADEIA";
+            return "STRING";
         }
     }
     return "NUMERO";
@@ -260,7 +260,7 @@ incompatíveis durante atribuições e operações.
     char *string;
 }
 
-%token BLOCO_INICIO BLOCO_FIM IDENTIFICADOR CADEIA NUMERO TIPO_INTEIRO TIPO_STRING PRINT IGUAL FIM VIRGULA MAIS
+%token BLOCO_INICIO BLOCO_FIM ID STRING NUMERO TIPO_INTEIRO TIPO_STRING PRINT IGUAL FIM VIRGULA MAIS
 %%
 program:
     program statement 
@@ -289,34 +289,34 @@ declaration_list_str:
     | declaration_list_str VIRGULA declaration_str
     ;
 declaration_str:
-    IDENTIFICADOR IGUAL expr_str { 
+    ID IGUAL expr_str { 
         char* var_name = apaga_esp($1.string);
         if (var_pilha(var_name) == NULL || var_bloco(var_name) == NULL) {
-            var_cadeia("CADEIA", var_name, $3.string, "declaration");
+            var_cadeia("STRING", var_name, $3.string, "declaration");
         } else if (strcmp(busca_variavel(var_name), "assignment") == 0) {
-            atualiza_variavel("CADEIA", var_name, 0, $3.string, "declaration");
+            atualiza_variavel("STRING", var_name, 0, $3.string, "declaration");
         } 
     }
-    | IDENTIFICADOR {
+    | ID {
         char* var_name = apaga_esp($1.string);
         if (var_pilha(var_name) == NULL || var_bloco(var_name) == NULL) {
-            var_cadeia("CADEIA", var_name, "", "declaration");
+            var_cadeia("STRING", var_name, "", "declaration");
         } else if (strcmp(busca_variavel(var_name), "assignment") == 0) {
-            atualiza_variavel("CADEIA", var_name, 0, "", "declaration");
+            atualiza_variavel("STRING", var_name, 0, "", "declaration");
         } 
     }
     ;
 expr_str:
-    CADEIA { $$.string = apaga_espa_aspas($1.string); }
-    | IDENTIFICADOR {
+    STRING { $$.string = apaga_espa_aspas($1.string); }
+    | ID {
         char* var_name = apaga_esp($1.string);
-        if(var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "CADEIA") == 0) {
+        if(var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "STRING") == 0) {
             $$.string = var_str(var_name);
         } else {
             printf("ERRO: tipos não compatíveis\n");
         }
     }
-    | expr_str MAIS CADEIA {
+    | expr_str MAIS STRING {
         char* part1 = retira_ultimo_digito($1.string);
         char* part2 = apaga_espa_aspas($3.string);
         part2 = retira_primeiro_digito(part2);
@@ -327,9 +327,9 @@ expr_str:
         strcat(result, part2);
         $$.string = result;
     }
-    | expr_str MAIS IDENTIFICADOR {
+    | expr_str MAIS ID {
         char* var_name = apaga_esp($3.string);
-        if(var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "CADEIA") == 0) {
+        if(var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "STRING") == 0) {
             char* part1 = retira_ultimo_digito($1.string);
             char* part2 = var_str(var_name);
             part2 = retira_primeiro_digito(part2);
@@ -349,7 +349,7 @@ declaration_list_num:
     | declaration_list_num VIRGULA declaracao_numero
     ;
 declaracao_numero:
-    IDENTIFICADOR IGUAL termo { 
+    ID IGUAL termo { 
         char* var_name = apaga_esp($1.string);
         if (var_pilha(var_name) == NULL || var_bloco(var_name) == NULL) {
             var_numero("NUMERO", var_name, $3.number, "declaration");
@@ -357,7 +357,7 @@ declaracao_numero:
             atualiza_variavel("NUMERO", var_name, $3.number, "", "declaration");
         } 
     }
-    | IDENTIFICADOR {
+    | ID {
         char* var_name = apaga_esp($1.string);
         if (var_pilha(var_name) == NULL || var_bloco(var_name) == NULL) {
             var_numero("NUMERO", var_name, 0, "declaration");
@@ -368,14 +368,14 @@ declaracao_numero:
     ;
 termo:
     NUMERO { $$.number = $1.number; }
-    | IDENTIFICADOR {
+    | ID {
         char* var_name = apaga_esp($1.string);
         if (var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
             $$.number = var_int(var_name);
         } 
     }
     | termo MAIS NUMERO  { $$.number = $1.number + $3.number; }
-    | termo MAIS IDENTIFICADOR {
+    | termo MAIS ID {
         char* var_name = apaga_esp($3.string);
         if (var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
             $$.number = $1.number + var_int(var_name);
@@ -383,7 +383,7 @@ termo:
     }
     ;
 assignment:
-    IDENTIFICADOR IGUAL expr {
+    ID IGUAL expr {
         char* expr_type = verificar_tipo($3.string);
         char* var_name = apaga_esp($1.string);
         if (var_pilha(var_name) != NULL) {
@@ -392,16 +392,16 @@ assignment:
                 if (var_bloco(var_name) == NULL) {
                     if (strcmp(expr_type, "NUMERO") == 0) {
                         var_numero("NUMERO", var_name, atoi($3.string), "assignment");
-                    } else if (strcmp(expr_type, "CADEIA") == 0) {
-                        var_cadeia("CADEIA", var_name, $3.string, "assignment");
+                    } else if (strcmp(expr_type, "STRING") == 0) {
+                        var_cadeia("STRING", var_name, $3.string, "assignment");
                     }
                 } else {
                     if (strcmp(expr_type, "NUMERO") == 0) {
                         atualiza_variavel("NUMERO", var_name, atoi($3.string), "", "assignment");
-                    } else if (strcmp(expr_type, "CADEIA") == 0) {
+                    } else if (strcmp(expr_type, "STRING") == 0) {
                         char* new_str = (char *)malloc((strlen($3.string) + 1) * sizeof(char));
                         strcpy(new_str, $3.string);
-                        atualiza_variavel("CADEIA", var_name, 0, new_str, "assignment");
+                        atualiza_variavel("STRING", var_name, 0, new_str, "assignment");
                         free(new_str);
                     } 
                 }
@@ -415,13 +415,13 @@ assignment:
     ;
 expr:
     NUMERO { $$.string = num_em_str($1.number); }
-    | CADEIA { $$.string = apaga_espa_aspas($1.string); }
-    | IDENTIFICADOR {
+    | STRING { $$.string = apaga_espa_aspas($1.string); }
+    | ID {
         char* var_name = apaga_esp($1.string);
         if (var_pilha(var_name) != NULL) {
             if (strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
                 $$.string = num_em_str(var_int(var_name));
-            } else if (strcmp(verifica_tipo_variavel(var_name), "CADEIA") == 0) {
+            } else if (strcmp(verifica_tipo_variavel(var_name), "STRING") == 0) {
                 $$.string = var_str(var_name);
             } 
         } else {
@@ -435,14 +435,14 @@ expr:
             printf("ERRO: Tipos incompatíveis\n");
         }
     }
-    | expr MAIS IDENTIFICADOR {
+    | expr MAIS ID {
         char* expr_type = verificar_tipo($1.string);
         char* var_name = apaga_esp($3.string);
         if (var_pilha(var_name) != NULL) {
             if (strcmp(expr_type, verifica_tipo_variavel(var_name)) == 0) {
                 if (strcmp(expr_type, "NUMERO") == 0) {
                     $$.string = num_em_str(atoi($1.string) + var_int(var_name));
-                } else if (strcmp(expr_type, "CADEIA") == 0) {
+                } else if (strcmp(expr_type, "STRING") == 0) {
                     char* part1 = retira_ultimo_digito($1.string);
                     char* part2 = var_str(var_name);
                     part2 = retira_primeiro_digito(part2);
@@ -462,7 +462,7 @@ expr:
     }
     ;
 print_statement:
-    PRINT IDENTIFICADOR {
+    PRINT ID {
         char* var_name = apaga_esp($2.string);
         if (var_pilha(var_name) != NULL) {
             if (strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
