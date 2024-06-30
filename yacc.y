@@ -1,16 +1,15 @@
 %{
-void yyerror(const char *s);
-int yylex(void);
-#include <ctype.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-
-typedef enum { 
-    TIPO_INTEIRO, 
-    TIPO_STRING 
-} Valor;
-
+#include <string.h>
+#include <ctype.h>
+/*
+   Nessa primeira parte do codigo faz a manipulação de variáveis (int, string) usando estrutura de pilha.
+   Principais funções: empilhar e desempilhar blocos de variáveis, criar novas, atualizar valores e buscar por nome.
+   Funcionalidades incluem manipulação de strings (remover espaços, aspas, dígitos) para processamento de dados textuais.
+   Simplifica o gerenciamento de variáveis e strings
+*/
+typedef enum { TIPO_INTEIRO, TIPO_STRING } Valor;
 typedef struct Var {
     char *tipo;
     char *id;
@@ -29,6 +28,9 @@ typedef struct Pilha {
 } Pilha;
 
 Pilha *stack = NULL;
+
+void yyerror(const char *s);
+int yylex(void);
 
 void inicia_pilha() {
     stack = NULL;
@@ -50,7 +52,7 @@ void desempilha() {
     }
 }
 
-char* buscar_tipo_linha_variavel(char *nome_variavel) {
+char* busca_variavel(char *nome_variavel) {
     for (Pilha *bloco_a = stack; bloco_a; bloco_a = bloco_a->p) {
         for (Var *temp = bloco_a->topo; temp; temp = temp->p) {
             if (strcmp(temp->id, nome_variavel) == 0) {
@@ -69,11 +71,10 @@ char* verifica_tipo_variavel(char *nome_var) {
             }
         }
     }
-    printf("Erro: variável %s não encontrada\n", nome_var);
     return NULL;
 }
 
-int menor_var(char *nome_var) {
+int var_int(char *nome_var) {
     for (Pilha *bloco_a = stack; bloco_a; bloco_a = bloco_a->p) {
         for (Var *temp = bloco_a->topo; temp; temp = temp->p) {
             if (strcmp(temp->id, nome_var) == 0) {
@@ -81,11 +82,9 @@ int menor_var(char *nome_var) {
             }
         }
     }
-    printf("Erro: variável %s não encontrada\n", nome_var);
     return 0;
 }
-
-char* variavel_str(char *nome_var) {
+char* var_str(char *nome_var) {
     for (Pilha *bloco_a = stack; bloco_a; bloco_a = bloco_a->p) {
         for (Var *temp = bloco_a->topo; temp; temp = temp->p) {
             if (strcmp(temp->id, nome_var) == 0) {
@@ -93,60 +92,57 @@ char* variavel_str(char *nome_var) {
             }
         }
     }
-    printf("Erro: variável %s não encontrada\n", nome_var);
     return NULL;
 }
 
 char* apaga_esp(const char* str) {
     int len = strlen(str);
-    char* string_atualiazada = malloc(len + 1);
-    if (!string_atualiazada) return NULL;
-
+    char* string_atualizada = malloc(len + 1);
+    if (!string_atualizada) return NULL;
     int j = 0;
     for (int i = 0; i < len; i++) {
         if (str[i] != ' ' && str[i] != '\t') {
-            string_atualiazada[j++] = str[i];
+            string_atualizada[j++] = str[i];
         }
     }
-    string_atualiazada[j] = '\0';
-    return string_atualiazada;
+    string_atualizada[j] = '\0';
+    return string_atualizada;
 }
 
 char* apaga_espa_aspas(const char* str) {
     int len = strlen(str);
-    char* string_atualiazada = malloc(len + 1);
-    if (!string_atualiazada) exit(1);
-
+    char* string_atualizada = malloc(len + 1);
+    if (!string_atualizada) exit(1);
     int j = 0, aspas = 0;
     for (int i = 0; str[i]; i++) {
         if (str[i] == '"') {
             aspas = 1 - aspas;
         }
         if (aspas || (str[i] != ' ' && str[i] != '\t')) {
-            string_atualiazada[j++] = str[i];
+            string_atualizada[j++] = str[i];
         }
     }
-    string_atualiazada[j] = '\0';
-    return string_atualiazada;
+    string_atualizada[j] = '\0';
+    return string_atualizada;
 }
 
 char* retira_ultimo_digito(char *str) {
     size_t len = strlen(str);
     if (len == 0) return NULL;
-    char *string_atualiazada = malloc(len);
-    if (!string_atualiazada) return NULL;
-    strncpy(string_atualiazada, str, len - 1);
-    string_atualiazada[len - 1] = '\0';
-    return string_atualiazada;
+    char *string_atualizada = malloc(len);
+    if (!string_atualizada) return NULL;
+    strncpy(string_atualizada, str, len - 1);
+    string_atualizada[len - 1] = '\0';
+    return string_atualizada;
 }
 
 char* retira_primeiro_digito(char *str) {
     size_t len = strlen(str);
     if (len <= 1) return NULL;
-    char *string_atualiazada = malloc(len);
-    if (!string_atualiazada) return NULL;
-    strcpy(string_atualiazada, str + 1);
-    return string_atualiazada;
+    char *string_atualizada = malloc(len);
+    if (!string_atualizada) return NULL;
+    strcpy(string_atualizada, str + 1);
+    return string_atualizada;
 }
 
 void var_numero(char *tipo, char *id, int numero_inteiro, char *tipo_linha) {
@@ -196,10 +192,9 @@ void atualiza_variavel(char *tipo, char *id, int numero_inteiro, char *cadeia_va
             }
         }
     }
-    printf("Erro: variável %s não encontrada.\n", id);
 }
 
-Var* variavel_pilha(char *identificador) {
+Var* var_pilha(char *identificador) {
     for (Pilha *bloco_a = stack; bloco_a; bloco_a = bloco_a->p) {
         for (Var *temp = bloco_a->topo; temp; temp = temp->p) {
             if (strcmp(temp->id, identificador) == 0) {
@@ -210,7 +205,7 @@ Var* variavel_pilha(char *identificador) {
     return NULL;
 }
 
-Var* variavel_bloco(char *identificador) {
+Var* var_bloco(char *identificador) {
     if (!stack) return NULL;
     for (Var *temp = stack->topo; temp; temp = temp->p) {
         if (strcmp(temp->id, identificador) == 0) {
@@ -228,61 +223,44 @@ void imprimir_pilha() {
             } else if (temp->tipo_valor == TIPO_STRING) {
                 printf("\"%s\"\n", temp->valor.cadeia_valor);
             } else {
-                printf("Erro: tipos não compatíveis\n");
+                printf("ERRO: tipos não compatíveis\n");
             }
         }
     }
 }
 
 char* num_em_str(int numero) {
-    char *buffer = malloc(50 * sizeof(char));
-    if (buffer) {
-        sprintf(buffer, "%d", numero);
-    }
+    char *buffer = malloc(12);
+    if (!buffer) return NULL;
+    snprintf(buffer, 12, "%d", numero);
     return buffer;
 }
 
-int e_numero(const char *str) {
-    if (*str == '\0') return 0;
-    if (*str == '+' || *str == '-') str++;
-    int e_digito = 0, tem_ponto = 0;
-    while (*str) {
-        if (isdigit(*str)) {
-            e_digito = 1;
-        } else if (*str == '.') {
-            if (tem_ponto) return 0;
-            tem_ponto = 1;
-        } else {
-            return 0;
+char* verificar_tipo(char *str) {
+    for (int i = 0; str[i] != '\0'; i++) {
+        if (!isdigit(str[i])) {
+            return "CADEIA";
         }
-        str++;
     }
-    return e_digito;
+    return "NUMERO";
 }
 
-int e_string(const char *str) {
-    size_t len = strlen(str);
-    return len >= 2 && str[0] == '"' && str[len - 1] == '"';
-}
-
-char* verificar_tipo(const char *str) {
-    if (e_numero(str)) {
-        return "NUMERO";
-    } else if (e_string(str)) {
-        return "CADEIA";
-    }
-    return NULL;
-}
-
-
+/*
+Este código em Yacc define um parser. Permite declarar e manipular variáveis de tipos string e número, realizar 
+operações como concatenação de strings e adição de números, e imprimir valores. 
+O parser inclui tratamento de erros para variáveis não declaradas e tipos 
+incompatíveis durante atribuições e operações.
+*/
 
 %}
+
 %union 
 {
     int number;
     char *string;
 }
-%token BLOCO_INICIO BLOCO_FIM IDENTIFICADOR CADEIA %token NUMERO %token TIPO_INTEIRO TIPO_STRING PRINT
+
+%token BLOCO_INICIO BLOCO_FIM IDENTIFICADOR CADEIA NUMERO TIPO_INTEIRO TIPO_STRING PRINT IGUAL FIM VIRGULA MAIS
 %%
 program:
     program statement 
@@ -291,9 +269,9 @@ program:
 statement:
     bloco_inicio
     | bloco_fim
-    | declaration ';'
-    | assignment ';'
-    | print_statement ';'
+    | declaration FIM
+    | assignment FIM
+    | print_statement FIM
     |
     ;
 bloco_inicio:
@@ -308,41 +286,37 @@ declaration:
     ;
 declaration_list_str:
     declaration_str
-    | declaration_list_str ',' declaration_str
+    | declaration_list_str VIRGULA declaration_str
     ;
 declaration_str:
-    IDENTIFICADOR '=' expr_str { 
+    IDENTIFICADOR IGUAL expr_str { 
         char* var_name = apaga_esp($1.string);
-        if (variavel_pilha(var_name) == NULL || variavel_bloco(var_name) == NULL) {
+        if (var_pilha(var_name) == NULL || var_bloco(var_name) == NULL) {
             var_cadeia("CADEIA", var_name, $3.string, "declaration");
-        } else if (strcmp(buscar_tipo_linha_variavel(var_name), "assignment") == 0) {
+        } else if (strcmp(busca_variavel(var_name), "assignment") == 0) {
             atualiza_variavel("CADEIA", var_name, 0, $3.string, "declaration");
-        } else {
-            printf("Erro: variável '%s' já declarada no Pilha\n", var_name);
-        }
+        } 
     }
     | IDENTIFICADOR {
         char* var_name = apaga_esp($1.string);
-        if (variavel_pilha(var_name) == NULL || variavel_bloco(var_name) == NULL) {
+        if (var_pilha(var_name) == NULL || var_bloco(var_name) == NULL) {
             var_cadeia("CADEIA", var_name, "", "declaration");
-        } else if (strcmp(buscar_tipo_linha_variavel(var_name), "assignment") == 0) {
+        } else if (strcmp(busca_variavel(var_name), "assignment") == 0) {
             atualiza_variavel("CADEIA", var_name, 0, "", "declaration");
-        } else {
-            printf("Erro: variável '%s' já declarada no Pilha\n", var_name);
-        }
+        } 
     }
     ;
 expr_str:
     CADEIA { $$.string = apaga_espa_aspas($1.string); }
     | IDENTIFICADOR {
         char* var_name = apaga_esp($1.string);
-        if(variavel_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "CADEIA") == 0) {
-            $$.string = variavel_str(var_name);
+        if(var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "CADEIA") == 0) {
+            $$.string = var_str(var_name);
         } else {
-            printf("Erro: tipos não compatíveis\n");
+            printf("ERRO: tipos não compatíveis\n");
         }
     }
-    | expr_str '+' CADEIA {
+    | expr_str MAIS CADEIA {
         char* part1 = retira_ultimo_digito($1.string);
         char* part2 = apaga_espa_aspas($3.string);
         part2 = retira_primeiro_digito(part2);
@@ -353,11 +327,11 @@ expr_str:
         strcat(result, part2);
         $$.string = result;
     }
-    | expr_str '+' IDENTIFICADOR {
+    | expr_str MAIS IDENTIFICADOR {
         char* var_name = apaga_esp($3.string);
-        if(variavel_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "CADEIA") == 0) {
+        if(var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "CADEIA") == 0) {
             char* part1 = retira_ultimo_digito($1.string);
-            char* part2 = variavel_str(var_name);
+            char* part2 = var_str(var_name);
             part2 = retira_primeiro_digito(part2);
             size_t len1 = strlen(part1);
             size_t len2 = strlen(part2);
@@ -366,64 +340,56 @@ expr_str:
             strcat(result, part2);
             $$.string = result;
         } else {
-            printf("Erro: tipos não compatíveis\n");
+            printf("ERRO: tipos não compatíveis\n");
         }
     }
     ;
 declaration_list_num:
     declaracao_numero
-    | declaration_list_num ',' declaracao_numero
+    | declaration_list_num VIRGULA declaracao_numero
     ;
 declaracao_numero:
-    IDENTIFICADOR '=' expressao_numero { 
+    IDENTIFICADOR IGUAL termo { 
         char* var_name = apaga_esp($1.string);
-        if (variavel_pilha(var_name) == NULL || variavel_bloco(var_name) == NULL) {
+        if (var_pilha(var_name) == NULL || var_bloco(var_name) == NULL) {
             var_numero("NUMERO", var_name, $3.number, "declaration");
-        } else if (strcmp(buscar_tipo_linha_variavel(var_name), "assignment") == 0) {
+        } else if (strcmp(busca_variavel(var_name), "assignment") == 0) {
             atualiza_variavel("NUMERO", var_name, $3.number, "", "declaration");
-        } else {
-            printf("Erro: variável '%s' já declarada no Pilha\n", var_name);
-        }
+        } 
     }
     | IDENTIFICADOR {
         char* var_name = apaga_esp($1.string);
-        if (variavel_pilha(var_name) == NULL || variavel_bloco(var_name) == NULL) {
+        if (var_pilha(var_name) == NULL || var_bloco(var_name) == NULL) {
             var_numero("NUMERO", var_name, 0, "declaration");
-        } else if (strcmp(buscar_tipo_linha_variavel(var_name), "assignment") == 0) {
+        } else if (strcmp(busca_variavel(var_name), "assignment") == 0) {
             atualiza_variavel("NUMERO", var_name, 0, "", "declaration");
-        } else {
-            printf("Erro: variável '%s' já declarada no Pilha\n", var_name);
-        }
+        } 
     }
     ;
-expressao_numero:
+termo:
     NUMERO { $$.number = $1.number; }
     | IDENTIFICADOR {
         char* var_name = apaga_esp($1.string);
-        if(variavel_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
-            $$.number = menor_var(var_name);
-        } else {
-            printf("Erro: tipos não compatíveis\n");
-        }
+        if (var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
+            $$.number = var_int(var_name);
+        } 
     }
-    | expressao_numero '+' NUMERO { $$.number = $1.number + $3.number; }
-    | expressao_numero '+' IDENTIFICADOR {
+    | termo MAIS NUMERO  { $$.number = $1.number + $3.number; }
+    | termo MAIS IDENTIFICADOR {
         char* var_name = apaga_esp($3.string);
-        if(variavel_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
-            $$.number = $1.number + menor_var(var_name);
-        } else {
-            printf("Erro: tipos não compatíveis\n");
-        }
+        if (var_pilha(var_name) != NULL && strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
+            $$.number = $1.number + var_int(var_name);
+        } 
     }
     ;
 assignment:
-    IDENTIFICADOR '=' expr {
+    IDENTIFICADOR IGUAL expr {
         char* expr_type = verificar_tipo($3.string);
         char* var_name = apaga_esp($1.string);
-        if (variavel_pilha(var_name) != NULL) {
+        if (var_pilha(var_name) != NULL) {
             char* var_type = verifica_tipo_variavel(var_name);
             if (strcmp(var_type, expr_type) == 0) {
-                if (variavel_bloco(var_name) == NULL) {
+                if (var_bloco(var_name) == NULL) {
                     if (strcmp(expr_type, "NUMERO") == 0) {
                         var_numero("NUMERO", var_name, atoi($3.string), "assignment");
                     } else if (strcmp(expr_type, "CADEIA") == 0) {
@@ -437,15 +403,13 @@ assignment:
                         strcpy(new_str, $3.string);
                         atualiza_variavel("CADEIA", var_name, 0, new_str, "assignment");
                         free(new_str);
-                    } else {
-                        printf("Erro: tipo inválido\n");
-                    }
+                    } 
                 }
             } else {
-                printf("Erro: tipos não compatíveis\n");
+                printf("ERRO: tipos não compatíveis\n");
             }
         } else {
-            printf("Erro: variável '%s' não declarada\n", var_name);
+            printf("ERRO: variável '%s' não declarada\n", var_name);
         }
     }
     ;
@@ -454,50 +418,33 @@ expr:
     | CADEIA { $$.string = apaga_espa_aspas($1.string); }
     | IDENTIFICADOR {
         char* var_name = apaga_esp($1.string);
-        if (variavel_pilha(var_name) != NULL) {
+        if (var_pilha(var_name) != NULL) {
             if (strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
-                $$.string = num_em_str(menor_var(var_name));
+                $$.string = num_em_str(var_int(var_name));
             } else if (strcmp(verifica_tipo_variavel(var_name), "CADEIA") == 0) {
-                $$.string = variavel_str(var_name);
-            } else {
-                printf("Erro: variável '%s' com tipo inválido\n", var_name);
-            }
+                $$.string = var_str(var_name);
+            } 
         } else {
-            printf("Erro: variável '%s' não declarada\n", var_name);
+            printf("ERRO: variável '%s' não declarada\n", var_name);
         }
     }
-    | expr '+' NUMERO {
+    | expr MAIS NUMERO {
         if (strcmp(verificar_tipo($1.string), "NUMERO") == 0) {
             $$.string = num_em_str(atoi($1.string) + $3.number);
         } else {
-            printf("Erro: Tipos incompatíveis\n");
+            printf("ERRO: Tipos incompatíveis\n");
         }
     }
-    | expr '+' CADEIA {
-        if (strcmp(verificar_tipo($1.string), "CADEIA") == 0) {
-            char* part1 = retira_ultimo_digito($1.string);
-            char* part2 = apaga_espa_aspas($3.string);
-            part2 = retira_primeiro_digito(part2);
-            size_t len1 = strlen(part1);
-            size_t len2 = strlen(part2);
-            char* result = (char*)malloc(len1 + len2 + 1);
-            strcpy(result, part1);
-            strcat(result, part2);
-            $$.string = result;
-        } else {
-            printf("Erro: Tipos incompatíveis\n");
-        }
-    }
-    | expr '+' IDENTIFICADOR {
+    | expr MAIS IDENTIFICADOR {
         char* expr_type = verificar_tipo($1.string);
         char* var_name = apaga_esp($3.string);
-        if (variavel_pilha(var_name) != NULL) {
+        if (var_pilha(var_name) != NULL) {
             if (strcmp(expr_type, verifica_tipo_variavel(var_name)) == 0) {
                 if (strcmp(expr_type, "NUMERO") == 0) {
-                    $$.string = num_em_str(atoi($1.string) + menor_var(var_name));
+                    $$.string = num_em_str(atoi($1.string) + var_int(var_name));
                 } else if (strcmp(expr_type, "CADEIA") == 0) {
                     char* part1 = retira_ultimo_digito($1.string);
-                    char* part2 = variavel_str(var_name);
+                    char* part2 = var_str(var_name);
                     part2 = retira_primeiro_digito(part2);
                     size_t len1 = strlen(part1);
                     size_t len2 = strlen(part2);
@@ -507,31 +454,30 @@ expr:
                     $$.string = result;
                 }
             } else {
-                printf("Erro: tipos não compatíveis\n");
+                printf("ERRO: tipos não compatíveis\n");
             }
         } else {
-            printf("Erro: variável '%s' não declarada\n", var_name);
+            printf("ERRO: variável não declarada\n", var_name);
         }
     }
     ;
 print_statement:
     PRINT IDENTIFICADOR {
         char* var_name = apaga_esp($2.string);
-        if (variavel_pilha(var_name) != NULL) {
+        if (var_pilha(var_name) != NULL) {
             if (strcmp(verifica_tipo_variavel(var_name), "NUMERO") == 0) {
-                printf(" %d\n", menor_var(var_name));
+                printf(" %d\n", var_int(var_name));
             } else {
-                printf(" %s\n", variavel_str(var_name));
+                printf(" %s\n", var_str(var_name));
             }
         } else {
-            printf("Erro: variável não declarada\n");
+            printf("ERRO: variável não declarada\n");
         }
     }
     ;
 %%
-
 void yyerror(const char *s) {
-    fprintf(stderr, "Erro: %s\n", s);
+
 }
 int main(void) {
     inicia_pilha();
