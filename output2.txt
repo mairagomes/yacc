@@ -1,0 +1,4 @@
+ 69
+ "123123"
+ 69
+ERRO: variável não declarada
